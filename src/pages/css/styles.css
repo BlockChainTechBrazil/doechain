@@ -362,6 +362,210 @@ body {
 }
 
 /* ========================================
+   Alerta de Urgência
+   ======================================== */
+.urgent-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border: 2px solid var(--danger);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  animation: pulse-urgent 2s infinite;
+}
+
+@keyframes pulse-urgent {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.urgent-alert-icon {
+  font-size: 2rem;
+  animation: shake 0.5s infinite;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-2px);
+  }
+
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+.urgent-alert-content {
+  flex: 1;
+  color: var(--danger);
+  font-weight: 500;
+}
+
+/* ========================================
+   KPIs do Edital
+   ======================================== */
+.kpi-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.kpi-section h3 {
+  margin-bottom: var(--spacing-md);
+  color: var(--gray-700);
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.kpi-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid var(--primary);
+}
+
+.kpi-card.kpi-automation {
+  border-left-color: var(--info);
+}
+
+.kpi-card.kpi-time {
+  border-left-color: var(--warning);
+}
+
+.kpi-card.kpi-consent {
+  border-left-color: var(--success);
+}
+
+.kpi-card.kpi-collection {
+  border-left-color: var(--primary);
+}
+
+.kpi-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.kpi-icon {
+  font-size: 1.25rem;
+}
+
+.kpi-title {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+  font-weight: 500;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-xs);
+}
+
+.kpi-detail {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+.kpi-subdetail {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  margin-top: var(--spacing-xs);
+}
+
+.kpi-progress {
+  height: 6px;
+  background: var(--gray-200);
+  border-radius: 3px;
+  margin-top: var(--spacing-sm);
+  overflow: hidden;
+}
+
+.kpi-progress-bar {
+  height: 100%;
+  background: var(--info);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.kpi-progress-bar.kpi-progress-success {
+  background: var(--success);
+}
+
+/* ========================================
+   Gráficos (Charts)
+   ======================================== */
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.chart-container {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-container h4 {
+  margin-bottom: var(--spacing-md);
+  color: var(--gray-700);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.chart-container canvas {
+  max-height: 200px;
+}
+
+/* ========================================
+   Badge de Família
+   ======================================== */
+.badge-family-notified {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-family-pending {
+  background: #fef3c7;
+  color: #92400e;
+  animation: pulse-family 1.5s infinite;
+}
+
+@keyframes pulse-family {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* ========================================
    Tables
    ======================================== */
 .data-table {
@@ -2271,4 +2475,191 @@ button:disabled {
 
 .btn-danger:hover {
   background-color: #dc2626;
+}
+
+/* ========================================
+   Alerta Família - Momento Crítico (Edital)
+   ======================================== */
+.family-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  animation: alertPulse 3s ease-in-out infinite;
+}
+
+@keyframes alertPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 20px 5px rgba(245, 158, 11, 0.2);
+  }
+}
+
+.family-alert-icon {
+  font-size: 2rem;
+  animation: shake 2s ease-in-out infinite;
+}
+
+.family-alert-content {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.family-alert-content strong {
+  color: #78350f;
+}
+
+/* Checkbox Card - Família Comunicada */
+.family-notified-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.checkbox-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background: var(--white);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.checkbox-card:hover {
+  border-color: var(--primary);
+  background: #f0f9ff;
+}
+
+.checkbox-card input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--success);
+  cursor: pointer;
+}
+
+.checkbox-card input[type="checkbox"]:checked+.checkbox-card-content {
+  color: var(--success);
+}
+
+.checkbox-card.family-notified-checkbox:has(input:checked) {
+  border-color: var(--success);
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.checkbox-card-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.checkbox-card-icon {
+  font-size: 1.5rem;
+}
+
+.checkbox-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.checkbox-card-text strong {
+  font-size: 1rem;
+  color: var(--gray-800);
+}
+
+.checkbox-card-text small {
+  font-size: 0.85rem;
+  color: var(--gray-500);
+}
+
+/* ========================================
+   Ações de Córnea - Modal de Detalhes
+   ======================================== */
+.cornea-actions {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px dashed var(--gray-200);
+}
+
+.cornea-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-outline:disabled {
+  border-color: var(--gray-300);
+  color: var(--gray-400);
+  cursor: not-allowed;
+}
+
+.btn-outline:disabled:hover {
+  background: transparent;
+}
+
+/* Timeline de Status da Córnea */
+.cornea-status-timeline {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--gray-400);
+}
+
+.timeline-item.completed {
+  color: var(--success);
+}
+
+.timeline-item.completed::after {
+  content: '✓';
+  margin-left: 2px;
+}
+
+.timeline-connector {
+  width: 30px;
+  height: 2px;
+  background: var(--gray-300);
+}
+
+.timeline-connector.completed {
+  background: var(--success);
 }

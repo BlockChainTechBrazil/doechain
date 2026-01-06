@@ -86,7 +86,16 @@ async function initializeTables() {
       cornea_viable INTEGER DEFAULT 0,
       cornea_left_status TEXT DEFAULT 'not_evaluated' CHECK(cornea_left_status IN ('not_evaluated', 'viable', 'not_viable', 'collected', 'transplanted')),
       cornea_right_status TEXT DEFAULT 'not_evaluated' CHECK(cornea_right_status IN ('not_evaluated', 'viable', 'not_viable', 'collected', 'transplanted')),
+      cornea_left_collected INTEGER DEFAULT 0,
+      cornea_right_collected INTEGER DEFAULT 0,
+      cornea_left_transplanted INTEGER DEFAULT 0,
+      cornea_right_transplanted INTEGER DEFAULT 0,
       contraindications TEXT,
+      
+      -- Comunicação à família (momento crítico do edital - ANTES da família sair)
+      family_notified INTEGER DEFAULT 0,
+      family_notified_at DATETIME,
+      family_notified_by TEXT,
       
       -- Consentimento familiar
       family_contact TEXT,
@@ -101,6 +110,11 @@ async function initializeTables() {
       institution_id INTEGER NOT NULL,
       notification_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
       
+      -- Timestamps de processo (KPIs do edital)
+      evaluation_datetime DATETIME,
+      collection_datetime DATETIME,
+      transplant_datetime DATETIME,
+      
       -- Blockchain
       blockchain_tx_hash TEXT,
       blockchain_confirmed INTEGER DEFAULT 0,
@@ -108,7 +122,7 @@ async function initializeTables() {
       ipfs_hash TEXT,
       
       -- Integração MV
-      source TEXT DEFAULT 'manual' CHECK(source IN ('manual', 'mv', 'api')),
+      source TEXT DEFAULT 'manual' CHECK(source IN ('manual', 'mv', 'api', 'blockchain')),
       is_automatic INTEGER DEFAULT 0,
       mv_id TEXT,
       mv_prontuario TEXT,

@@ -133,6 +133,27 @@ function maskPhone(input) {
 }
 
 // ========================================
+// Atualiza status visual quando família é comunicada
+// ========================================
+
+function updateFamilyNotifiedStatus() {
+  const checkbox = document.getElementById('family-notified');
+  const familyAlert = document.getElementById('family-alert');
+
+  if (checkbox && familyAlert) {
+    if (checkbox.checked) {
+      // Família comunicada - reduz urgência do alerta
+      familyAlert.style.opacity = '0.6';
+      familyAlert.style.animation = 'none';
+    } else {
+      // Família ainda não comunicada - alerta ativo
+      familyAlert.style.opacity = '1';
+      familyAlert.style.animation = 'alertPulse 3s ease-in-out infinite';
+    }
+  }
+}
+
+// ========================================
 // Máscara de CPF
 // ========================================
 
@@ -242,8 +263,27 @@ function setupEventListeners() {
   // Filters
   document.getElementById('filter-status')?.addEventListener('change', loadNotifications);
 
+  // Busca de notificações
+  const searchInput = document.getElementById('search-notifications');
+  if (searchInput) {
+    searchInput.addEventListener('input', debounce(() => {
+      loadNotifications();
+    }, 300));
+  }
+
   // Setup modal close on overlay click
   setupModalCloseOnOverlayClick();
+}
+
+/**
+ * Debounce para evitar chamadas excessivas
+ */
+function debounce(func, wait) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
 }
 
 // ========================================
@@ -381,6 +421,11 @@ async function handleLogout() {
 // Dashboard
 // ========================================
 
+// Variáveis globais para os gráficos
+let chartSource = null;
+let chartStatus = null;
+let chartConsent = null;
+
 async function loadDashboard() {
   // Update date
   document.getElementById('current-date').textContent = new Date().toLocaleDateString('pt-BR', {
@@ -394,12 +439,57 @@ async function loadDashboard() {
     // Verificar saldo do relayer
     await checkRelayerBalance();
 
-    // Load statistics
+    // Load statistics (agora com KPIs completos)
     const stats = await api.getStatistics();
+
+    // Métricas básicas
     document.getElementById('stat-total').textContent = stats.total || 0;
     document.getElementById('stat-viable').textContent = stats.corneaViable || 0;
     document.getElementById('stat-pending').textContent = stats.pending || 0;
     document.getElementById('stat-blockchain').textContent = stats.blockchainConfirmed || 0;
+
+    // KPIs do Edital - Automação
+    document.getElementById('kpi-automation-rate').textContent = `${stats.automaticRate || 0}%`;
+    document.getElementById('kpi-automatic').textContent = stats.automatic || 0;
+    document.getElementById('kpi-manual').textContent = stats.manual || 0;
+    document.getElementById('kpi-automation-bar').style.width = `${stats.automaticRate || 0}%`;
+
+    // KPIs do Edital - Tempo Médio
+    const avgTime = stats.avgTimeToNotification;
+    if (avgTime !== null && avgTime !== undefined) {
+      if (avgTime < 60) {
+        document.getElementById('kpi-avg-time').textContent = `${avgTime} min`;
+      } else {
+        const hours = Math.floor(avgTime / 60);
+        const mins = avgTime % 60;
+        document.getElementById('kpi-avg-time').textContent = `${hours}h ${mins}m`;
+      }
+    } else {
+      document.getElementById('kpi-avg-time').textContent = '--';
+    }
+
+    // KPIs do Edital - Consentimento
+    document.getElementById('kpi-consent-rate').textContent = `${stats.consentRate || 0}%`;
+    document.getElementById('kpi-consent-yes').textContent = stats.consentGranted || 0;
+    document.getElementById('kpi-consent-no').textContent = stats.consentRefused || 0;
+    document.getElementById('kpi-consent-pending').textContent = stats.consentPending || 0;
+    document.getElementById('kpi-consent-bar').style.width = `${stats.consentRate || 0}%`;
+
+    // KPIs do Edital - Córneas Captadas/Transplantadas
+    document.getElementById('kpi-collected').textContent = stats.corneaCollected || 0;
+    document.getElementById('kpi-transplanted').textContent = stats.corneaTransplanted || 0;
+
+    // Alerta de Urgência
+    const urgentAlert = document.getElementById('urgent-alert');
+    if (stats.urgentNotifications > 0) {
+      document.getElementById('urgent-count').textContent = stats.urgentNotifications;
+      urgentAlert.style.display = 'flex';
+    } else {
+      urgentAlert.style.display = 'none';
+    }
+
+    // Renderizar gráficos
+    renderCharts(stats);
 
     // Load recent notifications
     const notifications = await api.getNotifications({ limit: 5 });
@@ -410,11 +500,124 @@ async function loadDashboard() {
   }
 }
 
+/**
+ * Renderiza os gráficos do dashboard
+ */
+function renderCharts(stats) {
+  // Destruir gráficos existentes para evitar duplicação
+  if (chartSource) chartSource.destroy();
+  if (chartStatus) chartStatus.destroy();
+  if (chartConsent) chartConsent.destroy();
+
+  // Cores padrão
+  const colors = {
+    primary: '#2563eb',
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    info: '#06b6d4',
+    gray: '#64748b'
+  };
+
+  // Gráfico de Pizza - Fonte das Notificações
+  const sourceCtx = document.getElementById('chart-source');
+  if (sourceCtx) {
+    const sourceData = stats.bySource || {};
+    chartSource = new Chart(sourceCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Manual', 'MV (Automático)', 'API'],
+        datasets: [{
+          data: [
+            sourceData.manual || 0,
+            sourceData.mv || 0,
+            sourceData.api || 0
+          ],
+          backgroundColor: [colors.gray, colors.info, colors.primary],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 12, padding: 10 }
+          }
+        }
+      }
+    });
+  }
+
+  // Gráfico de Pizza - Status das Notificações
+  const statusCtx = document.getElementById('chart-status');
+  if (statusCtx) {
+    const statusData = stats.byStatus || {};
+    chartStatus = new Chart(statusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Pendente', 'Confirmado', 'Cancelado', 'Concluído'],
+        datasets: [{
+          data: [
+            statusData.pending || 0,
+            statusData.confirmed || 0,
+            statusData.cancelled || 0,
+            statusData.completed || 0
+          ],
+          backgroundColor: [colors.warning, colors.success, colors.danger, colors.primary],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 12, padding: 10 }
+          }
+        }
+      }
+    });
+  }
+
+  // Gráfico de Pizza - Consentimento Familiar
+  const consentCtx = document.getElementById('chart-consent');
+  if (consentCtx) {
+    chartConsent = new Chart(consentCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Autorizado', 'Recusado', 'Pendente'],
+        datasets: [{
+          data: [
+            stats.consentGranted || 0,
+            stats.consentRefused || 0,
+            stats.consentPending || 0
+          ],
+          backgroundColor: [colors.success, colors.danger, colors.gray],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 12, padding: 10 }
+          }
+        }
+      }
+    });
+  }
+}
+
 function renderRecentNotifications(notifications) {
   const tbody = document.getElementById('recent-notifications-body');
 
   if (!notifications || notifications.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Nenhuma notificação encontrada</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Nenhuma notificação encontrada</td></tr>';
     return;
   }
 
@@ -423,11 +626,17 @@ function renderRecentNotifications(notifications) {
     const sourceIcon = isAutomatic ? '<span class="mv-badge" title="Notificação automática via MV">🤖 MV</span>' : '';
     const rowClass = isAutomatic ? 'notification-automatic' : '';
 
+    // Badge de família comunicada
+    const familyBadge = n.family_notified
+      ? '<span class="badge badge-family-notified">✓ Comunicada</span>'
+      : '<span class="badge badge-family-pending">⚠ Pendente</span>';
+
     return `
     <tr class="${rowClass}">
       <td>#${n.id} ${sourceIcon}</td>
+      <td>${n.patient_name || 'Anônimo'}</td>
       <td>${formatDateTime(n.death_datetime)}</td>
-      <td>${n.institution_name || '-'}</td>
+      <td>${familyBadge}</td>
       <td>
         <span class="badge ${n.cornea_viable ? 'badge-success' : 'badge-default'}">
           ${n.cornea_viable ? 'Viável' : 'A avaliar'}
@@ -447,13 +656,59 @@ function renderRecentNotifications(notifications) {
 // Notifications
 // ========================================
 
+/**
+ * Navega para a página de notificações e aplica filtro de urgentes
+ */
+function showUrgentNotifications() {
+  // Navegar para a página de notificações
+  navigateTo('notifications');
+
+  // Aplicar filtro de urgentes
+  setTimeout(() => {
+    const filterSelect = document.getElementById('filter-status');
+    if (filterSelect) {
+      filterSelect.value = 'urgent';
+      loadNotifications();
+    }
+  }, 100);
+}
+
 async function loadNotifications() {
   try {
     // Verificar saldo do relayer para mostrar status correto
     await checkRelayerBalance();
 
     const status = document.getElementById('filter-status')?.value;
-    const notifications = await api.getNotifications({ status, limit: 100 });
+    const searchTerm = document.getElementById('search-notifications')?.value?.trim() || '';
+
+    // Construir filtros
+    let filters = { limit: 100 };
+
+    // Se filtro for "urgent", buscar apenas não notificadas
+    if (status === 'urgent') {
+      filters.familyNotified = false;
+    } else if (status) {
+      filters.status = status;
+    }
+
+    // Adicionar termo de busca
+    if (searchTerm) {
+      filters.search = searchTerm;
+    }
+
+    let notifications = await api.getNotifications(filters);
+
+    // Filtrar localmente se busca não for suportada pelo backend
+    if (searchTerm && notifications.length > 0) {
+      const term = searchTerm.toLowerCase();
+      notifications = notifications.filter(n =>
+        (n.patient_name && n.patient_name.toLowerCase().includes(term)) ||
+        (n.institution_name && n.institution_name.toLowerCase().includes(term)) ||
+        (n.id && n.id.toString().includes(term)) ||
+        (n.patient_hash && n.patient_hash.toLowerCase().includes(term))
+      );
+    }
+
     renderNotificationsList(notifications);
 
     // Atualizar badge de não lidos
@@ -622,7 +877,9 @@ async function handleNotificationSubmit(e) {
     familyContact: form.familyContact?.value || null,
     familyPhone: form.familyPhone?.value || null,
     familyRelationship: form.familyRelationship?.value || null,
-    familyConsent: familyConsent
+    familyConsent: familyConsent,
+    // Campo crítico do edital: família já foi comunicada
+    familyNotified: form.familyNotified?.checked || false
   };
 
   try {
@@ -704,6 +961,39 @@ async function viewNotification(id) {
     if (notification.contraindications) contraindications.push(...notification.contraindications.split(','));
     if (notification.contraindications_ocular) contraindications.push(...notification.contraindications_ocular.split(','));
     document.getElementById('detail-contraindications').textContent = contraindications.length > 0 ? contraindications.join(', ') : 'Nenhuma';
+
+    // Painel de Ações de Córnea (só mostra se córnea for viável)
+    const corneaActionsSection = document.getElementById('cornea-actions-section');
+    if (notification.cornea_viable && corneaActionsSection) {
+      corneaActionsSection.style.display = 'block';
+
+      // Atualizar estado dos botões baseado no status atual
+      const btnEvaluated = document.getElementById('btn-cornea-evaluated');
+      const btnCollected = document.getElementById('btn-cornea-collected');
+      const btnTransplanted = document.getElementById('btn-cornea-transplanted');
+
+      const isEvaluated = notification.evaluation_datetime;
+      const isCollected = notification.cornea_left_collected || notification.cornea_right_collected;
+      const isTransplanted = notification.cornea_left_transplanted || notification.cornea_right_transplanted;
+
+      if (btnEvaluated) {
+        btnEvaluated.disabled = isEvaluated;
+        btnEvaluated.innerHTML = isEvaluated ? '✅ Avaliada' : '✅ Marcar Avaliada';
+      }
+      if (btnCollected) {
+        btnCollected.disabled = isCollected || !isEvaluated;
+        btnCollected.innerHTML = isCollected ? '🔬 Coletada' : '🔬 Marcar Coletada';
+      }
+      if (btnTransplanted) {
+        btnTransplanted.disabled = isTransplanted || !isCollected;
+        btnTransplanted.innerHTML = isTransplanted ? '🎯 Transplantada' : '🎯 Marcar Transplantada';
+      }
+
+      // Renderizar timeline
+      renderCorneaTimeline(notification);
+    } else if (corneaActionsSection) {
+      corneaActionsSection.style.display = 'none';
+    }
 
     // Blockchain
     if (notification.blockchain_tx_hash) {
@@ -787,6 +1077,56 @@ function getRelationshipLabel(relationship) {
     'outro': 'Outro'
   };
   return labels[relationship] || '-';
+}
+
+/**
+ * Renderiza timeline de status da córnea
+ */
+function renderCorneaTimeline(notification) {
+  const timeline = document.getElementById('cornea-timeline');
+  if (!timeline) return;
+
+  const isEvaluated = notification.evaluation_datetime;
+  const isCollected = notification.cornea_left_collected || notification.cornea_right_collected;
+  const isTransplanted = notification.cornea_left_transplanted || notification.cornea_right_transplanted;
+
+  timeline.innerHTML = `
+    <span class="timeline-item ${isEvaluated ? 'completed' : ''}">
+      📋 Avaliação
+    </span>
+    <span class="timeline-connector ${isEvaluated ? 'completed' : ''}"></span>
+    <span class="timeline-item ${isCollected ? 'completed' : ''}">
+      🔬 Coleta
+    </span>
+    <span class="timeline-connector ${isCollected ? 'completed' : ''}"></span>
+    <span class="timeline-item ${isTransplanted ? 'completed' : ''}">
+      🎯 Transplante
+    </span>
+  `;
+}
+
+/**
+ * Atualiza status de ação da córnea
+ */
+async function updateCorneaAction(action) {
+  if (!currentNotificationId) return;
+
+  try {
+    showToast(`Atualizando status para ${action}...`, 'info');
+
+    const result = await api.updateCorneaStatus(currentNotificationId, action, 'both');
+
+    showToast('✅ Status atualizado com sucesso!', 'success');
+
+    // Recarregar modal com dados atualizados
+    await viewNotification(currentNotificationId);
+
+    // Atualizar dashboard
+    loadDashboard();
+  } catch (error) {
+    console.error('Erro ao atualizar status da córnea:', error);
+    showToast(error.message || 'Erro ao atualizar status', 'error');
+  }
 }
 
 // ========================================

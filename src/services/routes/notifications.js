@@ -51,12 +51,13 @@ router.post('/', authenticate, canNotify, [
  */
 router.get('/', authenticate, healthOperators, (req, res) => {
   try {
-    const { status, institutionId, corneaViable, startDate, endDate, limit } = req.query;
+    const { status, institutionId, corneaViable, startDate, endDate, limit, familyNotified } = req.query;
 
     // Se não for admin/ses, limitar à própria instituição
     let filters = {
       status,
       corneaViable: corneaViable !== undefined ? corneaViable === 'true' : undefined,
+      familyNotified: familyNotified !== undefined ? familyNotified === 'true' : undefined,
       startDate,
       endDate,
       limit: limit ? parseInt(limit) : 100
@@ -268,6 +269,50 @@ router.put('/:id/read', authenticate, healthOperators, (req, res) => {
 
     const result = notificationService.markAsRead(parseInt(req.params.id), req.user.id);
     res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/notifications/:id/family-notified
+ * Marcar família como comunicada (requisito crítico do edital)
+ */
+router.put('/:id/family-notified', authenticate, canNotify, (req, res) => {
+  try {
+    const notification = notificationService.markFamilyNotified(
+      parseInt(req.params.id),
+      req.user.id
+    );
+    res.json(notification);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/notifications/:id/cornea-status
+ * Atualizar status da córnea (avaliação, coleta, transplante)
+ */
+router.put('/:id/cornea-status', authenticate, canManageCornea, [
+  body('action').isIn(['evaluated', 'collected', 'transplanted']).withMessage('Ação inválida'),
+  body('eye').optional().isIn(['left', 'right', 'both']).withMessage('Olho deve ser left, right ou both')
+], (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { action, eye, notes } = req.body;
+    const notification = notificationService.updateCorneaStatus(
+      parseInt(req.params.id),
+      action,
+      eye || 'both',
+      notes,
+      req.user.id
+    );
+    res.json(notification);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

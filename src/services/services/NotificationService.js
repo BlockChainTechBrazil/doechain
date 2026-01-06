@@ -49,6 +49,7 @@ class NotificationService {
       familyPhone,
       familyRelationship,
       familyConsent,
+      familyNotified, // Novo campo do edital: família já foi comunicada
       contraindications
     } = data;
 
@@ -67,8 +68,9 @@ class NotificationService {
         death_datetime, death_cause, death_location, pcr_confirmed,
         notified_by_user_id, institution_id, notes, source, is_automatic,
         family_contact, family_phone, family_relationship, family_consent,
+        family_notified, family_notified_at, family_notified_by,
         contraindications
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 0, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 0, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -79,6 +81,9 @@ class NotificationService {
       familyPhone || null,
       familyRelationship || null,
       familyConsentValue,
+      familyNotified ? 1 : 0,
+      familyNotified ? new Date().toISOString() : null,
+      familyNotified ? userId : null,
       contraindications ? JSON.stringify(contraindications) : null
     );
 
@@ -221,6 +226,127 @@ class NotificationService {
 
     const result = db.prepare(query).run(...params);
     return { markedCount: result.changes };
+  }
+
+  /**
+   * Marca família como comunicada (requisito crítico do edital)
+   * Este é o momento em que a equipe conversa com a família sobre doação
+   */
+  markFamilyNotified(notificationId, userId) {
+    const db = getDatabase();
+
+    const notification = this.getNotificationById(notificationId);
+    if (!notification) {
+      throw new Error('Notificação não encontrada');
+    }
+
+    if (notification.family_notified) {
+      throw new Error('Família já foi comunicada anteriormente');
+    }
+
+    db.prepare(`
+      UPDATE death_notifications 
+      SET family_notified = 1, 
+          family_notified_at = CURRENT_TIMESTAMP, 
+          family_notified_by = ?
+      WHERE id = ?
+    `).run(userId, notificationId);
+
+    // Log de auditoria
+    db.prepare(`
+      INSERT INTO audit_logs (user_id, action, entity_type, entity_id, new_values)
+      VALUES (?, 'family_notified', 'death_notification', ?, ?)
+    `).run(userId, notificationId, JSON.stringify({
+      family_notified_at: new Date().toISOString(),
+      family_notified_by: userId
+    }));
+
+    return this.getNotificationById(notificationId);
+  }
+
+  /**
+   * Atualiza status da córnea (avaliação, coleta, transplante)
+   * @param {number} notificationId - ID da notificação
+   * @param {string} action - 'evaluated', 'collected', 'transplanted'
+   * @param {string} eye - 'left', 'right', 'both'
+   * @param {string} notes - Observações
+   * @param {number} userId - Usuário que atualizou
+   */
+  updateCorneaStatus(notificationId, action, eye = 'both', notes = '', userId) {
+    const db = getDatabase();
+
+    const notification = this.getNotificationById(notificationId);
+    if (!notification) {
+      throw new Error('Notificação não encontrada');
+    }
+
+    // Verificar se córnea é viável
+    if (!notification.cornea_viable) {
+      throw new Error('Córnea não está marcada como viável para esta notificação');
+    }
+
+    const now = new Date().toISOString();
+    const updates = [];
+    const params = [];
+
+    switch (action) {
+      case 'evaluated':
+        updates.push('evaluation_datetime = ?');
+        params.push(now);
+        break;
+
+      case 'collected':
+        // Atualiza campos de coleta baseado no olho
+        updates.push('collection_datetime = ?');
+        params.push(now);
+
+        if (eye === 'left' || eye === 'both') {
+          updates.push('cornea_left_collected = 1');
+        }
+        if (eye === 'right' || eye === 'both') {
+          updates.push('cornea_right_collected = 1');
+        }
+        break;
+
+      case 'transplanted':
+        // Atualiza campos de transplante baseado no olho
+        updates.push('transplant_datetime = ?');
+        params.push(now);
+
+        if (eye === 'left' || eye === 'both') {
+          updates.push('cornea_left_transplanted = 1');
+        }
+        if (eye === 'right' || eye === 'both') {
+          updates.push('cornea_right_transplanted = 1');
+        }
+        break;
+
+      default:
+        throw new Error('Ação inválida');
+    }
+
+    if (notes) {
+      updates.push('notes = COALESCE(notes, \'\') || ? ');
+      params.push(`\n[${action.toUpperCase()} ${now}] ${notes}`);
+    }
+
+    params.push(notificationId);
+
+    db.prepare(`
+      UPDATE death_notifications 
+      SET ${updates.join(', ')}
+      WHERE id = ?
+    `).run(...params);
+
+    // Log de auditoria
+    db.prepare(`
+      INSERT INTO audit_logs (user_id, action, entity_type, entity_id, new_values)
+      VALUES (?, ?, 'death_notification', ?, ?)
+    `).run(userId, `cornea_${action}`, notificationId, JSON.stringify({
+      action, eye, notes, datetime: now
+    }));
+
+    return this.getNotificationById(notificationId);
   }
 
   /**
@@ -511,6 +637,15 @@ class NotificationService {
       params.push(filters.isAutomatic ? 1 : 0);
     }
 
+    // Filtro de família notificada (para filtro de urgentes)
+    if (filters.familyNotified !== undefined) {
+      if (filters.familyNotified === false || filters.familyNotified === 'false') {
+        query += ' AND (n.family_notified IS NULL OR n.family_notified = 0)';
+      } else {
+        query += ' AND n.family_notified = 1';
+      }
+    }
+
     query += ' ORDER BY n.notification_datetime DESC';
 
     if (filters.limit) {
@@ -522,13 +657,15 @@ class NotificationService {
   }
 
   /**
-   * Estatísticas do dashboard
+   * Estatísticas do dashboard - KPIs do Edital CPSI
    */
   getStatistics(institutionId = null) {
     const db = getDatabase();
     const whereClause = institutionId ? 'WHERE institution_id = ?' : '';
+    const andClause = institutionId ? 'AND institution_id = ?' : '';
     const params = institutionId ? [institutionId] : [];
 
+    // Contagens básicas
     const total = db.prepare(`
       SELECT COUNT(*) as count FROM death_notifications ${whereClause}
     `).get(...params);
@@ -553,12 +690,177 @@ class NotificationService {
       ${whereClause ? whereClause + ' AND' : 'WHERE'} date(notification_datetime) = date('now')
     `).get(...params);
 
+    // KPIs do Edital - Notificações Automatizadas vs Manuais
+    const automatic = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} is_automatic = 1
+    `).get(...params);
+
+    const manual = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} is_automatic = 0
+    `).get(...params);
+
+    // KPIs do Edital - Córneas por Status
+    const corneaCollectedLeft = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} cornea_left_status = 'collected'
+    `).get(...params);
+
+    const corneaCollectedRight = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} cornea_right_status = 'collected'
+    `).get(...params);
+
+    const corneaTransplantedLeft = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} cornea_left_status = 'transplanted'
+    `).get(...params);
+
+    const corneaTransplantedRight = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} cornea_right_status = 'transplanted'
+    `).get(...params);
+
+    // KPIs do Edital - Consentimento Familiar
+    const consentGranted = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} family_consent = 1
+    `).get(...params);
+
+    const consentRefused = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} family_consent = 0
+    `).get(...params);
+
+    const consentPending = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} family_consent IS NULL
+    `).get(...params);
+
+    // KPIs do Edital - Comunicação à Família (momento crítico)
+    const familyNotified = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} family_notified = 1
+    `).get(...params);
+
+    const familyNotNotified = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} (family_notified = 0 OR family_notified IS NULL)
+    `).get(...params);
+
+    // KPIs do Edital - Tempo Médio (em minutos)
+    const avgTimeToNotification = db.prepare(`
+      SELECT AVG(
+        (julianday(notification_datetime) - julianday(death_datetime)) * 24 * 60
+      ) as avg_minutes
+      FROM death_notifications 
+      WHERE notification_datetime IS NOT NULL AND death_datetime IS NOT NULL
+      ${andClause}
+    `).get(...params);
+
+    const avgTimeToConsent = db.prepare(`
+      SELECT AVG(
+        (julianday(consent_datetime) - julianday(notification_datetime)) * 24 * 60
+      ) as avg_minutes
+      FROM death_notifications 
+      WHERE consent_datetime IS NOT NULL AND notification_datetime IS NOT NULL
+      ${andClause}
+    `).get(...params);
+
+    const avgTimeToCollection = db.prepare(`
+      SELECT AVG(
+        (julianday(collection_datetime) - julianday(death_datetime)) * 24 * 60
+      ) as avg_minutes
+      FROM death_notifications 
+      WHERE collection_datetime IS NOT NULL AND death_datetime IS NOT NULL
+      ${andClause}
+    `).get(...params);
+
+    // Alertas urgentes - Notificações onde família não foi comunicada e passou tempo
+    const urgentNotifications = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      WHERE status = 'pending' 
+        AND (family_notified = 0 OR family_notified IS NULL)
+        AND (julianday('now') - julianday(death_datetime)) * 24 < 6
+      ${andClause}
+    `).get(...params);
+
+    // Estatísticas por período (últimos 7 dias, 30 dias)
+    const last7Days = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      WHERE notification_datetime >= datetime('now', '-7 days')
+      ${andClause}
+    `).get(...params);
+
+    const last30Days = db.prepare(`
+      SELECT COUNT(*) as count FROM death_notifications 
+      WHERE notification_datetime >= datetime('now', '-30 days')
+      ${andClause}
+    `).get(...params);
+
+    // Por fonte (para gráfico de pizza)
+    const bySource = db.prepare(`
+      SELECT source, COUNT(*) as count FROM death_notifications 
+      ${whereClause}
+      GROUP BY source
+    `).all(...params);
+
+    // Por status (para gráfico de pizza)
+    const byStatus = db.prepare(`
+      SELECT status, COUNT(*) as count FROM death_notifications 
+      ${whereClause}
+      GROUP BY status
+    `).all(...params);
+
     return {
+      // Métricas básicas
       total: total.count,
       corneaViable: viable.count,
       pending: pending.count,
       blockchainConfirmed: confirmed.count,
-      today: today.count
+      today: today.count,
+
+      // KPIs do Edital - Automação
+      automatic: automatic.count,
+      manual: manual.count,
+      automaticRate: total.count > 0 ? Math.round((automatic.count / total.count) * 100) : 0,
+
+      // KPIs do Edital - Córneas
+      corneaCollected: corneaCollectedLeft.count + corneaCollectedRight.count,
+      corneaTransplanted: corneaTransplantedLeft.count + corneaTransplantedRight.count,
+      corneaCollectedLeft: corneaCollectedLeft.count,
+      corneaCollectedRight: corneaCollectedRight.count,
+      corneaTransplantedLeft: corneaTransplantedLeft.count,
+      corneaTransplantedRight: corneaTransplantedRight.count,
+
+      // KPIs do Edital - Consentimento
+      consentGranted: consentGranted.count,
+      consentRefused: consentRefused.count,
+      consentPending: consentPending.count,
+      consentRate: (consentGranted.count + consentRefused.count) > 0
+        ? Math.round((consentGranted.count / (consentGranted.count + consentRefused.count)) * 100)
+        : 0,
+
+      // KPIs do Edital - Comunicação à Família
+      familyNotified: familyNotified.count,
+      familyNotNotified: familyNotNotified.count,
+
+      // KPIs do Edital - Tempos Médios (em minutos)
+      avgTimeToNotification: avgTimeToNotification.avg_minutes ? Math.round(avgTimeToNotification.avg_minutes) : null,
+      avgTimeToConsent: avgTimeToConsent.avg_minutes ? Math.round(avgTimeToConsent.avg_minutes) : null,
+      avgTimeToCollection: avgTimeToCollection.avg_minutes ? Math.round(avgTimeToCollection.avg_minutes) : null,
+
+      // Alertas
+      urgentNotifications: urgentNotifications.count,
+
+      // Períodos
+      last7Days: last7Days.count,
+      last30Days: last30Days.count,
+
+      // Para gráficos
+      bySource: bySource.reduce((acc, item) => ({ ...acc, [item.source]: item.count }), {}),
+      byStatus: byStatus.reduce((acc, item) => ({ ...acc, [item.status]: item.count }), {})
     };
   }
 

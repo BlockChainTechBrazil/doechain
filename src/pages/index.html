@@ -25,6 +25,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -119,6 +122,17 @@
             <span id="current-date"></span>
           </header>
 
+          <!-- Alerta de Urgência -->
+          <div id="urgent-alert" class="urgent-alert" style="display: none;">
+            <div class="urgent-alert-icon">🚨</div>
+            <div class="urgent-alert-content">
+              <strong>ATENÇÃO:</strong> <span id="urgent-count">0</span> notificações aguardando comunicação à família
+              dentro da janela crítica de 6h!
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="showUrgentNotifications()">Ver Urgentes</button>
+          </div>
+
+          <!-- KPIs Principais (Linha 1) -->
           <div class="stats-grid">
             <div class="stat-card">
               <div class="stat-icon">📋</div>
@@ -150,14 +164,90 @@
             </div>
           </div>
 
+          <!-- KPIs do Edital (Linha 2) -->
+          <div class="kpi-section">
+            <h3>📊 KPIs do Edital CPSI</h3>
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-automation">
+                <div class="kpi-header">
+                  <span class="kpi-icon">🤖</span>
+                  <span class="kpi-title">Automação</span>
+                </div>
+                <div class="kpi-value" id="kpi-automation-rate">0%</div>
+                <div class="kpi-detail">
+                  <span id="kpi-automatic">0</span> automáticas / <span id="kpi-manual">0</span> manuais
+                </div>
+                <div class="kpi-progress">
+                  <div class="kpi-progress-bar" id="kpi-automation-bar" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <div class="kpi-card kpi-time">
+                <div class="kpi-header">
+                  <span class="kpi-icon">⏱️</span>
+                  <span class="kpi-title">Tempo Médio</span>
+                </div>
+                <div class="kpi-value" id="kpi-avg-time">--</div>
+                <div class="kpi-detail">Óbito → Notificação</div>
+                <div class="kpi-subdetail">
+                  Meta: &lt; 60 min
+                </div>
+              </div>
+
+              <div class="kpi-card kpi-consent">
+                <div class="kpi-header">
+                  <span class="kpi-icon">✅</span>
+                  <span class="kpi-title">Taxa de Consentimento</span>
+                </div>
+                <div class="kpi-value" id="kpi-consent-rate">0%</div>
+                <div class="kpi-detail">
+                  <span id="kpi-consent-yes">0</span> sim / <span id="kpi-consent-no">0</span> não / <span
+                    id="kpi-consent-pending">0</span> pendente
+                </div>
+                <div class="kpi-progress">
+                  <div class="kpi-progress-bar kpi-progress-success" id="kpi-consent-bar" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <div class="kpi-card kpi-collection">
+                <div class="kpi-header">
+                  <span class="kpi-icon">💉</span>
+                  <span class="kpi-title">Córneas Captadas</span>
+                </div>
+                <div class="kpi-value" id="kpi-collected">0</div>
+                <div class="kpi-detail">
+                  <span id="kpi-transplanted">0</span> transplantadas
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gráficos -->
+          <div class="charts-section">
+            <div class="chart-container">
+              <h4>Notificações por Fonte</h4>
+              <canvas id="chart-source"></canvas>
+            </div>
+            <div class="chart-container">
+              <h4>Status das Notificações</h4>
+              <canvas id="chart-status"></canvas>
+            </div>
+            <div class="chart-container">
+              <h4>Consentimento Familiar</h4>
+              <canvas id="chart-consent"></canvas>
+            </div>
+          </div>
+
+          <!-- Notificações Recentes -->
           <div class="recent-notifications">
             <h3>Notificações Recentes</h3>
             <table class="data-table">
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Paciente</th>
                   <th>Data/Hora Óbito</th>
-                  <th>Instituição</th>
+                  <th>Família</th>
                   <th>Córneas</th>
                   <th>Status</th>
                   <th>Ações</th>
@@ -165,7 +255,7 @@
               </thead>
               <tbody id="recent-notifications-body">
                 <tr>
-                  <td colspan="6" class="empty-state">Carregando...</td>
+                  <td colspan="7" class="empty-state">Carregando...</td>
                 </tr>
               </tbody>
             </table>
@@ -193,6 +283,7 @@
               <input type="text" id="search-notifications" placeholder="Buscar..." class="search-input">
               <select id="filter-status" class="filter-select">
                 <option value="">Todos os Status</option>
+                <option value="urgent">🚨 Urgentes (família não comunicada)</option>
                 <option value="pending">Pendentes</option>
                 <option value="confirmed">Confirmados</option>
                 <option value="completed">Concluídos</option>
@@ -333,6 +424,30 @@
                   <span class="section-icon">✍️</span>
                   Consentimento Familiar
                 </h3>
+
+                <!-- ALERTA: Momento crítico do edital - comunicar ANTES da família sair -->
+                <div class="family-alert" id="family-alert">
+                  <div class="family-alert-icon">⚠️</div>
+                  <div class="family-alert-content">
+                    <strong>MOMENTO CRÍTICO:</strong> A família deve ser comunicada sobre a possibilidade de doação
+                    <strong>ANTES</strong> de deixar a unidade. Após a saída, raramente retornam.
+                  </div>
+                </div>
+
+                <!-- Checkbox: Família já foi comunicada -->
+                <div class="family-notified-section">
+                  <label class="checkbox-card family-notified-checkbox">
+                    <input type="checkbox" id="family-notified" name="familyNotified"
+                      onchange="updateFamilyNotifiedStatus()">
+                    <span class="checkbox-card-content">
+                      <span class="checkbox-card-icon">👪</span>
+                      <span class="checkbox-card-text">
+                        <strong>Família já foi comunicada sobre potencial de doação</strong>
+                        <small>Marque quando a equipe tiver conversado com a família</small>
+                      </span>
+                    </span>
+                  </label>
+                </div>
 
                 <div class="form-row form-row-3">
                   <div class="form-group">
@@ -901,6 +1016,28 @@
             <div class="detail-item" id="detail-contraindications-wrapper" style="margin-top: 1rem;">
               <span class="detail-label">Contraindicações:</span>
               <span class="detail-value" id="detail-contraindications"></span>
+            </div>
+
+            <!-- Ações de Córnea (KPI do edital) -->
+            <div class="cornea-actions" id="cornea-actions-section" style="display: none;">
+              <h5 style="margin-top: 1rem; margin-bottom: 0.5rem;">📋 Ações de Rastreamento</h5>
+              <div class="cornea-action-buttons">
+                <button type="button" class="btn btn-sm btn-outline" onclick="updateCorneaAction('evaluated')"
+                  id="btn-cornea-evaluated">
+                  ✅ Marcar Avaliada
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" onclick="updateCorneaAction('collected')"
+                  id="btn-cornea-collected">
+                  🔬 Marcar Coletada
+                </button>
+                <button type="button" class="btn btn-sm btn-success" onclick="updateCorneaAction('transplanted')"
+                  id="btn-cornea-transplanted">
+                  🎯 Marcar Transplantada
+                </button>
+              </div>
+              <div class="cornea-status-timeline" id="cornea-timeline">
+                <!-- Preenchido via JS -->
+              </div>
             </div>
           </div>
 

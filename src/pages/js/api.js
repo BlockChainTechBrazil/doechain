@@ -134,10 +134,16 @@ class ApiClient {
     });
   }
 
-  async updateCorneaStatus(id, leftStatus, rightStatus) {
-    return this.request(`/notifications/${id}/cornea`, {
+  async updateCorneaStatus(id, action, eye = 'both', notes = '') {
+    return this.request(`/notifications/${id}/cornea-status`, {
       method: 'PUT',
-      body: JSON.stringify({ leftStatus, rightStatus })
+      body: JSON.stringify({ action, eye, notes })
+    });
+  }
+
+  async markFamilyNotified(id) {
+    return this.request(`/notifications/${id}/family-notified`, {
+      method: 'PUT'
     });
   }
 
