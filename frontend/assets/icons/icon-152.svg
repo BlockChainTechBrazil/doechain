@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
+  <!-- Background -->
+  <rect width="192" height="192" rx="32" fill="#2563eb"/>
+  
+  <!-- Hospital Cross -->
+  <rect x="80" y="40" width="32" height="112" rx="4" fill="white"/>
+  <rect x="40" y="80" width="112" height="32" rx="4" fill="white"/>
+  
+  <!-- Chain Link Symbol -->
+  <circle cx="96" cy="96" r="60" stroke="white" stroke-width="4" stroke-dasharray="8 8" fill="none" opacity="0.3"/>
+  
+  <!-- Cornea Symbol (Eye) -->
+  <ellipse cx="96" cy="140" rx="20" ry="10" fill="white" opacity="0.8"/>
+  <circle cx="96" cy="140" r="5" fill="#2563eb"/>
+</svg>

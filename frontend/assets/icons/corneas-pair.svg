@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="eyeGradientL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e0e7ff;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="irisGradientL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="pupilGradientL" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </radialGradient>
+    <linearGradient id="viableGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Olho Esquerdo -->
+  <g transform="translate(10, 15)">
+    <!-- Sclera -->
+    <ellipse cx="40" cy="30" rx="35" ry="25" 
+             fill="url(#eyeGradientL)" 
+             stroke="#94a3b8" 
+             stroke-width="2"/>
+    <!-- Íris -->
+    <circle cx="40" cy="30" r="16" fill="url(#irisGradientL)"/>
+    <!-- Pupila -->
+    <circle cx="40" cy="30" r="6" fill="url(#pupilGradientL)"/>
+    <!-- Reflexo -->
+    <ellipse cx="35" cy="25" rx="3" ry="2" fill="white" opacity="0.8"/>
+    <!-- Indicador de córnea -->
+    <circle cx="40" cy="30" r="18" 
+            fill="none" 
+            stroke="url(#viableGradient)" 
+            stroke-width="2"/>
+    <!-- Label -->
+    <text x="40" y="68" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#64748b" font-weight="600">
+      ESQUERDA
+    </text>
+  </g>
+  
+  <!-- Olho Direito -->
+  <g transform="translate(100, 15)">
+    <!-- Sclera -->
+    <ellipse cx="40" cy="30" rx="35" ry="25" 
+             fill="url(#eyeGradientL)" 
+             stroke="#94a3b8" 
+             stroke-width="2"/>
+    <!-- Íris -->
+    <circle cx="40" cy="30" r="16" fill="url(#irisGradientL)"/>
+    <!-- Pupila -->
+    <circle cx="40" cy="30" r="6" fill="url(#pupilGradientL)"/>
+    <!-- Reflexo -->
+    <ellipse cx="45" cy="25" rx="3" ry="2" fill="white" opacity="0.8"/>
+    <!-- Indicador de córnea -->
+    <circle cx="40" cy="30" r="18" 
+            fill="none" 
+            stroke="url(#viableGradient)" 
+            stroke-width="2"/>
+    <!-- Label -->
+    <text x="40" y="68" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#64748b" font-weight="600">
+      DIREITA
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,45 @@
+{
+  "name": "doechain",
+  "version": "1.0.0",
+  "description": "DoeChain - Sistema de Notificação de Óbitos com Potencial de Doação de Córneas",
+  "main": "standalone.js",
+  "bin": "standalone.js",
+  "scripts": {
+    "start": "node standalone.js",
+    "build": "npm run build:prepare && npm run build:pkg",
+    "build:prepare": "node build/prepare.js",
+    "build:pkg": "pkg . --targets node18-win-x64 --output dist/DoeChain.exe --compress GZip",
+    "build:all": "pkg . --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --output dist/DoeChain --compress GZip"
+  },
+  "pkg": {
+    "assets": [
+      "frontend/**/*",
+      "backend/abi/**/*",
+      "backend/data/.gitkeep",
+      "node_modules/sql.js/dist/sql-wasm.wasm"
+    ],
+    "scripts": [
+      "backend/**/*.js"
+    ],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.11.1",
+    "sql.js": "^1.10.3",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "express-validator": "^7.0.1",
+    "open": "^8.4.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

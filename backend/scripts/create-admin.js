@@ -1,0 +1,62 @@
+/**
+ * Script para criar o usuário administrador inicial
+ */
+
+require('dotenv').config();
+const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs');
+
+// Garantir que a pasta data existe
+const dataDir = path.join(__dirname, '..', 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+const { initDatabase, getDatabase, closeDatabase } = require('../config/database');
+
+async function createAdmin() {
+  console.log('👤 Criando usuário administrador...\n');
+
+  // Inicializar banco
+  await initDatabase();
+  const db = getDatabase();
+
+  const email = process.env.ADMIN_EMAIL || 'admin@doechain.gov.br';
+  const password = process.env.ADMIN_PASSWORD || 'admin123456';
+  const name = process.env.ADMIN_NAME || 'Administrador Sistema';
+
+  // Verificar se já existe
+  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+
+  if (existing) {
+    console.log(`⚠️  Usuário ${email} já existe!`);
+    closeDatabase();
+    return;
+  }
+
+  // Hash da senha
+  const salt = await bcrypt.genSalt(12);
+  const passwordHash = await bcrypt.hash(password, salt);
+
+  // Inserir admin
+  const stmt = db.prepare(`
+    INSERT INTO users (email, password_hash, name, role, active)
+    VALUES (?, ?, ?, 'admin', 1)
+  `);
+
+  const result = stmt.run(email, passwordHash, name);
+
+  console.log('✅ Administrador criado com sucesso!');
+  console.log(`   📧 Email: ${email}`);
+  console.log(`   🔑 Senha: ${password}`);
+  console.log(`   🆔 ID: ${result.lastInsertRowid}`);
+  console.log('\n⚠️  IMPORTANTE: Altere a senha após o primeiro login!');
+
+  closeDatabase();
+}
+
+createAdmin().catch(err => {
+  console.error('❌ Erro ao criar admin:', err);
+  process.exit(1);
+});
