@@ -13,12 +13,11 @@ echo.
 
 :: Definir diretório base (onde está o .bat)
 set "BASE_DIR=%~dp0"
-set "BACKEND_DIR=%BASE_DIR%backend"
 
 :: ========================================
 :: Verificar Node.js
 :: ========================================
-echo [1/5] Verificando Node.js...
+echo [1/4] Verificando Node.js...
 where node >nul 2>nul
 if %ERRORLEVEL% neq 0 (
     echo.
@@ -37,7 +36,7 @@ echo    ✅ Node.js %NODE_VERSION%
 :: ========================================
 :: Verificar npm
 :: ========================================
-echo [2/5] Verificando npm...
+echo [2/4] Verificando npm...
 where npm >nul 2>nul
 if %ERRORLEVEL% neq 0 (
     echo    ❌ npm não encontrado!
@@ -49,16 +48,19 @@ for /f "tokens=*" %%i in ('npm -v') do set NPM_VERSION=%%i
 echo    ✅ npm %NPM_VERSION%
 
 :: ========================================
-:: Verificar se precisa instalar
+:: Ir para diretório do projeto
 :: ========================================
-echo [3/5] Verificando instalação...
-
-cd /d "%BACKEND_DIR%"
+cd /d "%BASE_DIR%"
 if %ERRORLEVEL% neq 0 (
-    echo    ❌ Pasta backend não encontrada!
+    echo    ❌ Erro ao acessar diretório do projeto!
     pause
     exit /b 1
 )
+
+:: ========================================
+:: Verificar se precisa instalar
+:: ========================================
+echo [3/4] Verificando instalação...
 
 set "NEEDS_INSTALL=0"
 
@@ -66,12 +68,6 @@ set "NEEDS_INSTALL=0"
 if not exist "node_modules" (
     set "NEEDS_INSTALL=1"
     echo    ⚠️  Dependências não instaladas
-)
-
-:: Verificar .env
-if not exist ".env" (
-    set "NEEDS_INSTALL=1"
-    echo    ⚠️  Arquivo .env não configurado
 )
 
 :: Verificar banco de dados
@@ -100,15 +96,6 @@ if "%NEEDS_INSTALL%"=="1" (
             exit /b 1
         )
         echo    ✅ Dependências instaladas
-    )
-    
-    :: Criar .env
-    if not exist ".env" (
-        echo 📝 Criando arquivo de configuração...
-        copy ".env.example" ".env" >nul
-        echo    ✅ Arquivo .env criado
-        echo    ℹ️  Usando mesmas configs do PetID ^(Infura + Forwarder^)
-        echo.
     )
     
     :: Criar pasta data se não existir
@@ -143,7 +130,7 @@ if "%NEEDS_INSTALL%"=="1" (
 :: ========================================
 :: Iniciar servidor
 :: ========================================
-echo [4/5] Iniciando servidor...
+echo [4/4] Iniciando servidor...
 
 :: Verificar se já está rodando na porta 3001
 netstat -ano | findstr :3001 | findstr LISTENING >nul 2>nul
@@ -158,7 +145,7 @@ if %ERRORLEVEL% equ 0 (
 )
 
 :: Iniciar servidor em uma nova janela minimizada
-start /min "DoeChain Server" cmd /c "node server.js"
+start /min "DoeChain Server" cmd /c "node src/services/server.js"
 
 :: Aguardar servidor iniciar
 echo    ⏳ Aguardando servidor...
@@ -186,7 +173,7 @@ echo    ✅ Servidor iniciado!
 :: ========================================
 :: Abrir navegador
 :: ========================================
-echo [5/5] Abrindo navegador...
+echo    🌐 Abrindo navegador...
 start http://localhost:3001
 
 echo.

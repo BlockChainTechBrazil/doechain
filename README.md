@@ -76,19 +76,24 @@ A solução visa resolver o desafio da **baixa captação de córneas** no estad
 - Node.js >= 18.0.0
 - NPM ou Yarn
 
-### Instalação
+### Instalação Rápida (Windows)
+
+Basta executar o arquivo `DoeChain.bat` - ele fará todo o setup automaticamente:
+- Verifica Node.js e npm
+- Instala dependências
+- Inicializa o banco de dados
+- Cria usuário administrador
+- Inicia o servidor
+
+### Instalação Manual
 
 ```bash
 # Clone o repositório
-cd orgaos-hospitais
+git clone <repo-url>
+cd doechain
 
-# Instale as dependências do backend
-cd backend
+# Instale as dependências
 npm install
-
-# Configure as variáveis de ambiente
-cp .env.example .env
-# Edite o .env com suas configurações
 
 # Inicialize o banco de dados
 npm run init-db
@@ -102,30 +107,39 @@ npm start
 
 ### Acesso
 - URL: http://localhost:3001
-- Login padrão: admin@doechain.gov.br / Admin@123
+- Login padrão: admin@doechain.gov.br / admin123456
 
 ## 📁 Estrutura do Projeto
 
 ```
-orgaos-hospitais/
-├── backend/
-│   ├── abi/                 # ABIs dos smart contracts
-│   ├── config/              # Configurações (DB, networks, contracts)
-│   ├── data/                # Banco de dados SQLite
-│   ├── middleware/          # Autenticação JWT
-│   ├── routes/              # Rotas da API
-│   ├── scripts/             # Scripts de inicialização
-│   ├── services/            # Serviços (Auth, Notification, Relayer)
-│   └── server.js            # Servidor Express
-├── contracts/
-│   ├── DeathNotificationRegistry.sol   # Contrato principal
-│   └── Forwarder.sol                   # Meta-transactions
-├── frontend/
-│   ├── assets/              # Ícones e imagens
-│   ├── css/                 # Estilos
-│   ├── js/                  # JavaScript (api.js, app.js)
-│   └── index.html           # Página principal
-└── installer/               # Scripts de instalação Windows
+doechain/
+├── src/
+│   ├── contracts/           # Smart contracts Solidity
+│   │   ├── DeathNotificationRegistry.sol
+│   │   └── Forwarder.sol
+│   ├── pages/               # Frontend (PWA)
+│   │   ├── assets/          # Ícones PWA
+│   │   ├── css/             # Estilos
+│   │   ├── js/              # JavaScript (api.js, app.js)
+│   │   ├── index.html       # Página principal
+│   │   └── sw.js            # Service Worker
+│   ├── services/            # Backend Node.js
+│   │   ├── abi/             # ABIs dos contratos
+│   │   ├── config/          # Configurações (DB, networks)
+│   │   ├── middleware/      # Autenticação JWT
+│   │   ├── routes/          # Rotas da API
+│   │   ├── scripts/         # Scripts de inicialização
+│   │   ├── services/        # Services (Auth, Notification, Relayer)
+│   │   └── server.js        # Servidor Express
+│   └── shared/              # Tipos compartilhados
+│       ├── types.js
+│       └── types.d.ts
+├── data/                    # Banco de dados SQLite
+├── build/                   # Scripts de build
+├── dist/                    # Executável gerado
+├── DoeChain.bat             # Launcher Windows
+├── standalone.js            # Entry point para executável
+└── package.json
 ```
 
 ## 🔐 Segurança e LGPD

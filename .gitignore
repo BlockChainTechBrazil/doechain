@@ -1,19 +1,17 @@
 # Dependências
 node_modules/
-backend/node_modules/
 
 # Banco de dados local
 data/
-backend/data/
 *.db
 
-# Arquivos de ambiente (contém chaves privadas!)
+# Arquivos de ambiente (não utilizados, config embutida)
 .env
-backend/.env
+.env.local
+.env.example
 
 # Build e distribuição
 dist/
-build/
 
 # Logs
 *.log
@@ -30,6 +28,3 @@ Thumbs.db
 # Cache
 .cache/
 *.cache
-
-# Package locks (opcional - remova se quiser versionar)
-# package-lock.json

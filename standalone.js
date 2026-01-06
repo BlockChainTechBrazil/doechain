@@ -12,8 +12,8 @@ const isPkg = typeof process.pkg !== 'undefined';
 
 // Diretório base - se empacotado, usa o diretório do executável
 const baseDir = isPkg ? path.dirname(process.execPath) : __dirname;
-const backendDir = isPkg ? path.join(baseDir) : path.join(__dirname, 'backend');
-const frontendDir = isPkg ? path.join(baseDir, 'frontend') : path.join(__dirname, 'frontend');
+const servicesDir = isPkg ? path.join(baseDir) : path.join(__dirname, 'src', 'services');
+const pagesDir = isPkg ? path.join(baseDir, 'src', 'pages') : path.join(__dirname, 'src', 'pages');
 const dataDir = path.join(baseDir, 'data');
 
 // Garantir que o diretório data existe
@@ -47,7 +47,7 @@ Object.keys(CONFIG).forEach(key => {
 // Configurar caminhos para o pkg
 process.env.DOECHAIN_BASE_DIR = baseDir;
 process.env.DOECHAIN_DATA_DIR = dataDir;
-process.env.DOECHAIN_FRONTEND_DIR = frontendDir;
+process.env.DOECHAIN_PAGES_DIR = pagesDir;
 process.env.DOECHAIN_IS_PKG = isPkg ? 'true' : 'false';
 
 // ========================================
@@ -64,7 +64,7 @@ if (isPkg) {
   // Copiar sql-wasm.wasm se necessário
   const wasmSource = path.join(__dirname, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
   const wasmDest = path.join(baseDir, 'sql-wasm.wasm');
-  
+
   if (fs.existsSync(wasmSource) && !fs.existsSync(wasmDest)) {
     try {
       fs.copyFileSync(wasmSource, wasmDest);
@@ -233,7 +233,7 @@ async function initDatabase() {
 // Migrações para atualizar banco existente
 async function runMigrations() {
   console.log('[DB] Verificando migrações...');
-  
+
   // Adicionar coluna last_login se não existir
   try {
     db.exec(`ALTER TABLE users ADD COLUMN last_login DATETIME`);
@@ -241,7 +241,7 @@ async function runMigrations() {
   } catch (e) {
     // Coluna já existe, ignorar
   }
-  
+
   // Criar tabela sessions se não existir (para autenticação JWT)
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
@@ -419,12 +419,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
-// Servir frontend
-const frontendPath = isPkg 
-  ? path.join(__dirname, 'frontend')
-  : path.join(__dirname, 'frontend');
+// Servir frontend (pages)
+const pagesPath = isPkg
+  ? path.join(__dirname, 'src', 'pages')
+  : path.join(__dirname, 'src', 'pages');
 
-app.use(express.static(frontendPath));
+app.use(express.static(pagesPath));
 
 // ========================================
 // Servidor
@@ -442,10 +442,10 @@ async function startServer() {
     global.DOECHAIN_BASE_DIR = baseDir;
 
     // Carregar rotas do backend
-    const authRoutes = require('./backend/routes/auth');
-    const notificationRoutes = require('./backend/routes/notifications');
-    const institutionRoutes = require('./backend/routes/institutions');
-    const relayRoutes = require('./backend/routes/relay');
+    const authRoutes = require('./src/services/routes/auth');
+    const notificationRoutes = require('./src/services/routes/notifications');
+    const institutionRoutes = require('./src/services/routes/institutions');
+    const relayRoutes = require('./src/services/routes/relay');
 
     app.use('/api/auth', authRoutes);
     app.use('/api/notifications', notificationRoutes);
@@ -465,7 +465,7 @@ async function startServer() {
 
     // SPA fallback
     app.get('*', (req, res) => {
-      res.sendFile(path.join(frontendPath, 'index.html'));
+      res.sendFile(path.join(pagesPath, 'index.html'));
     });
 
     // Iniciar servidor

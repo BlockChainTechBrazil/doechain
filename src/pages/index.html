@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DoeChain - Sistema de Notificação de Óbitos</title>
+
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="Sistema de Notificação de Óbitos com Potencial de Doação de Córneas">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DoeChain">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.webmanifest">
+
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/icon-192.svg">
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <!-- Login Page -->
+    <div id="login-page" class="page active">
+      <div class="login-container">
+        <div class="login-header">
+          <div class="logo">
+            <span class="logo-icon">🏥</span>
+            <h1>DoeChain</h1>
+          </div>
+          <p class="subtitle">Sistema de Notificação de Óbitos com Potencial de Doação de Córneas</p>
+        </div>
+
+        <form id="login-form" class="login-form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="seu.email@hospital.gov.br" required>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            <span class="btn-text">Entrar</span>
+            <span class="btn-loading" hidden>Entrando...</span>
+          </button>
+
+          <div id="login-error" class="error-message" hidden></div>
+        </form>
+
+        <div class="login-footer">
+          <p>© 2026 Blockchaintech Brazil - DoeChain v1.0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboard-page" class="page">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span class="logo-icon">🏥</span>
+          <span class="logo-text">DoeChain</span>
+          <button id="pwa-install-btn" class="install-btn" onclick="installPWA()" title="Instalar App" hidden>
+            <span>⬇️</span>
+          </button>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-item active" data-page="dashboard">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Dashboard</span>
+          </a>
+          <a href="#" class="nav-item" data-page="notifications">
+            <span class="nav-icon">📋</span>
+            <span class="nav-text">Notificações</span>
+            <span id="unread-count-badge" class="unread-count-badge" style="display: none;">0</span>
+          </a>
+          <a href="#" class="nav-item" data-page="new-notification" data-roles="admin,hospital,iml,svo">
+            <span class="nav-icon">➕</span>
+            <span class="nav-text">Nova Notificação</span>
+          </a>
+          <a href="#" class="nav-item" data-page="institutions" data-roles="admin">
+            <span class="nav-icon">🏢</span>
+            <span class="nav-text">Instituições</span>
+          </a>
+          <a href="#" class="nav-item" data-page="relayer" data-roles="admin">
+            <span class="nav-icon">⛽</span>
+            <span class="nav-text">Relayer</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="user-info">
+            <span class="user-name" id="sidebar-user-name">Usuário</span>
+            <span class="user-role" id="sidebar-user-role">Role</span>
+          </div>
+          <button id="logout-btn" class="btn btn-sm btn-secondary">Sair</button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Dashboard Content -->
+        <section id="content-dashboard" class="content-section active">
+          <header class="content-header">
+            <h2>Dashboard</h2>
+            <span id="current-date"></span>
+          </header>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📋</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-total">0</span>
+                <span class="stat-label">Total Notificações</span>
+              </div>
+            </div>
+            <div class="stat-card stat-success">
+              <div class="stat-icon">👁️</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-viable">0</span>
+                <span class="stat-label">Córneas Viáveis</span>
+              </div>
+            </div>
+            <div class="stat-card stat-warning">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-pending">0</span>
+                <span class="stat-label">Pendentes</span>
+              </div>
+            </div>
+            <div class="stat-card stat-info">
+              <div class="stat-icon">⛓️</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-blockchain">0</span>
+                <span class="stat-label">Na Blockchain</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="recent-notifications">
+            <h3>Notificações Recentes</h3>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Data/Hora Óbito</th>
+                  <th>Instituição</th>
+                  <th>Córneas</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="recent-notifications-body">
+                <tr>
+                  <td colspan="6" class="empty-state">Carregando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Notifications List -->
+        <section id="content-notifications" class="content-section">
+          <header class="content-header">
+            <h2>Notificações</h2>
+            <div class="header-actions">
+              <!-- Botão Marcar todas como lidas -->
+              <button class="btn-mark-all-read" onclick="markAllNotificationsAsRead()" title="Marcar todas como lidas">
+                ✓ Marcar todas como lidas
+              </button>
+              <!-- Botão Integração MV -->
+              <div class="mv-integration-controls">
+                <button id="mv-toggle-btn" class="btn btn-mv mv-inactive" onclick="toggleMVIntegration()">
+                  🟢 Ligar MV
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="forceGenerateMVDeath()" title="Gerar óbito de teste">
+                  ➕ Testar
+                </button>
+              </div>
+              <input type="text" id="search-notifications" placeholder="Buscar..." class="search-input">
+              <select id="filter-status" class="filter-select">
+                <option value="">Todos os Status</option>
+                <option value="pending">Pendentes</option>
+                <option value="confirmed">Confirmados</option>
+                <option value="completed">Concluídos</option>
+              </select>
+            </div>
+          </header>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Paciente</th>
+                <th>Data/Hora Óbito</th>
+                <th>Instituição</th>
+                <th>Consentimento</th>
+                <th>Córnea E</th>
+                <th>Córnea D</th>
+                <th>Blockchain</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="notifications-list-body">
+              <tr>
+                <td colspan="10" class="empty-state">Carregando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- New Notification Form -->
+        <section id="content-new-notification" class="content-section">
+          <header class="content-header notification-header">
+            <h2>Nova Notificação de Óbito</h2>
+            <!-- Timer de Janela Crítica -->
+            <div id="critical-window-timer" class="critical-timer">
+              <div class="timer-icon">⏱️</div>
+              <div class="timer-content">
+                <span class="timer-label">JANELA CRÍTICA PARA DOAÇÃO</span>
+                <span class="timer-value" id="timer-countdown">--:--:--</span>
+              </div>
+              <div class="timer-status" id="timer-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Aguardando</span>
+              </div>
+            </div>
+          </header>
+
+          <form id="notification-form" class="notification-form-grid">
+            <!-- COLUNA ESQUERDA -->
+            <div class="form-column form-column-left">
+              <!-- ===== SEÇÃO 1: DADOS DO PACIENTE ===== -->
+              <div class="form-section">
+                <h3 class="form-section-title">
+                  <span class="section-icon">👤</span>
+                  Dados do Paciente
+                </h3>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="patient-name">Nome Completo *</label>
+                    <input type="text" id="patient-name" name="patientName" required placeholder="Nome do paciente">
+                  </div>
+                </div>
+
+                <div class="form-row form-row-3">
+                  <div class="form-group">
+                    <label for="patient-cpf">CPF *</label>
+                    <input type="text" id="patient-cpf" name="patientCPF" placeholder="000.000.000-00" required
+                      oninput="maskCPF(this)">
+                  </div>
+                  <div class="form-group">
+                    <label for="patient-age">Idade</label>
+                    <input type="number" id="patient-age" name="patientAge" min="0" max="110" placeholder="Anos">
+                    <small class="field-hint">Córneas: até 80 anos</small>
+                  </div>
+                  <div class="form-group">
+                    <label for="patient-gender">Sexo</label>
+                    <select id="patient-gender" name="patientGender">
+                      <option value="">Selecione</option>
+                      <option value="M">Masculino</option>
+                      <option value="F">Feminino</option>
+                      <option value="O">Outro</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ===== SEÇÃO 2: DADOS DO ÓBITO ===== -->
+              <div class="form-section">
+                <h3 class="form-section-title">
+                  <span class="section-icon">📋</span>
+                  Dados do Óbito
+                </h3>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="death-datetime">Data/Hora do Óbito *</label>
+                    <input type="datetime-local" id="death-datetime" name="deathDatetime" required
+                      onchange="validateDeathDatetime(this); updateCriticalTimer()">
+                    <small class="field-hint warning">⚠️ Captação: até 6 horas</small>
+                  </div>
+                  <div class="form-group">
+                    <label for="institution-id">Instituição *</label>
+                    <select id="institution-id" name="institutionId" required>
+                      <option value="">Selecione</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="death-cause">Causa do Óbito</label>
+                    <input type="text" id="death-cause" name="deathCause" placeholder="Descreva a causa...">
+                  </div>
+                  <div class="form-group">
+                    <label for="death-location">Local</label>
+                    <input type="text" id="death-location" name="deathLocation" placeholder="UTI, Enfermaria...">
+                  </div>
+                </div>
+
+                <div class="form-group checkbox-group pcr-highlight">
+                  <label class="checkbox-large">
+                    <input type="checkbox" id="pcr-confirmed" name="pcrConfirmed" onchange="updateEligibility()">
+                    <span class="checkbox-content">
+                      <span class="checkbox-icon">❤️</span>
+                      <span class="checkbox-text">
+                        <strong>PCR Confirmado</strong>
+                        <small>Parada Cardiorrespiratória - Potencial Doador</small>
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- ===== SEÇÃO 3: CONSENTIMENTO FAMILIAR ===== -->
+              <div class="form-section consent-section">
+                <h3 class="form-section-title">
+                  <span class="section-icon">✍️</span>
+                  Consentimento Familiar
+                </h3>
+
+                <div class="form-row form-row-3">
+                  <div class="form-group">
+                    <label for="family-contact">Responsável</label>
+                    <input type="text" id="family-contact" name="familyContact" placeholder="Nome">
+                  </div>
+                  <div class="form-group">
+                    <label for="family-phone">Telefone</label>
+                    <input type="tel" id="family-phone" name="familyPhone" placeholder="(62) 99999-9999"
+                      oninput="maskPhone(this)">
+                  </div>
+                  <div class="form-group">
+                    <label for="family-relationship">Parentesco</label>
+                    <select id="family-relationship" name="familyRelationship">
+                      <option value="">Selecione</option>
+                      <option value="conjuge">Cônjuge</option>
+                      <option value="filho">Filho(a)</option>
+                      <option value="pai_mae">Pai/Mãe</option>
+                      <option value="irmao">Irmão(ã)</option>
+                      <option value="outro">Outro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="consent-buttons">
+                  <label class="consent-btn consent-approve">
+                    <input type="radio" name="consentDecision" value="approved" onchange="updateConsentStatus()">
+                    <span class="consent-btn-content">
+                      <span class="consent-btn-icon">✅</span>
+                      <span class="consent-btn-text">Consentimento Obtido</span>
+                    </span>
+                  </label>
+                  <label class="consent-btn consent-refuse">
+                    <input type="radio" name="consentDecision" value="refused" onchange="updateConsentStatus()">
+                    <span class="consent-btn-content">
+                      <span class="consent-btn-icon">❌</span>
+                      <span class="consent-btn-text">Recusa Familiar</span>
+                    </span>
+                  </label>
+                  <label class="consent-btn consent-pending">
+                    <input type="radio" name="consentDecision" value="pending" checked onchange="updateConsentStatus()">
+                    <span class="consent-btn-content">
+                      <span class="consent-btn-icon">⏳</span>
+                      <span class="consent-btn-text">Aguardando</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- ===== SEÇÃO: OBSERVAÇÕES ===== -->
+              <div class="form-section">
+                <h3 class="form-section-title">
+                  <span class="section-icon">📝</span>
+                  Observações
+                </h3>
+                <div class="form-group">
+                  <textarea id="notes" name="notes" rows="2" placeholder="Informações adicionais..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- COLUNA DIREITA -->
+            <div class="form-column form-column-right">
+              <!-- ===== CONTRAINDICAÇÕES MÉDICAS ===== -->
+              <div class="form-section contraindications-section">
+                <h3 class="form-section-title">
+                  <span class="section-icon">🏥</span>
+                  Contraindicações
+                  <span class="section-badge">Doação de Córneas</span>
+                </h3>
+
+                <!-- Contraindicações Absolutas -->
+                <div class="contraindication-group">
+                  <h4 class="contraindication-title contraindication-absolute">
+                    <span class="title-icon">🚫</span>
+                    Absolutas
+                  </h4>
+                  <div class="contraindication-grid compact">
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="hiv" onchange="updateEligibility()">
+                      <span class="ci-text">HIV/AIDS</span>
+                    </label>
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="hepatite_b" onchange="updateEligibility()">
+                      <span class="ci-text">Hepatite B</span>
+                    </label>
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="hepatite_c" onchange="updateEligibility()">
+                      <span class="ci-text">Hepatite C</span>
+                    </label>
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="raiva" onchange="updateEligibility()">
+                      <span class="ci-text">Raiva</span>
+                    </label>
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="creutzfeldt_jakob"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">D. Priônicas</span>
+                    </label>
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="sepse" onchange="updateEligibility()">
+                      <span class="ci-text">Sepse</span>
+                    </label>
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="leucemia" onchange="updateEligibility()">
+                      <span class="ci-text">Leucemia</span>
+                    </label>
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="tuberculose"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Tuberculose</span>
+                    </label>
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="htlv" onchange="updateEligibility()">
+                      <span class="ci-text">HTLV I/II</span>
+                    </label>
+                    <label class="contraindication-item absolute">
+                      <input type="checkbox" name="contraindications" value="causa_desconhecida"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Causa Desconhecida</span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Contraindicações Oculares -->
+                <div class="contraindication-group">
+                  <h4 class="contraindication-title contraindication-ocular">
+                    <span class="title-icon">👁️</span>
+                    Oculares
+                  </h4>
+                  <div class="contraindication-grid compact">
+                    <label class="contraindication-item ocular">
+                      <input type="checkbox" name="contraindications_ocular" value="cirurgia_refrativa"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Cirurgia Refrativa</span>
+                    </label>
+                    <label class="contraindication-item ocular">
+                      <input type="checkbox" name="contraindications_ocular" value="ceratocone"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Ceratocone</span>
+                    </label>
+                    <label class="contraindication-item ocular">
+                      <input type="checkbox" name="contraindications_ocular" value="distrofia_cornea"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Distrofia Córnea</span>
+                    </label>
+                    <label class="contraindication-item ocular">
+                      <input type="checkbox" name="contraindications_ocular" value="glaucoma"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Glaucoma</span>
+                    </label>
+                    <label class="contraindication-item ocular">
+                      <input type="checkbox" name="contraindications_ocular" value="infeccao_ocular"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Infecção Ocular</span>
+                    </label>
+                    <label class="contraindication-item ocular">
+                      <input type="checkbox" name="contraindications_ocular" value="tumor_ocular"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Tumor Ocular</span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Condições para Avaliação -->
+                <div class="contraindication-group">
+                  <h4 class="contraindication-title contraindication-evaluate">
+                    <span class="title-icon">⚖️</span>
+                    Avaliar
+                  </h4>
+                  <div class="contraindication-grid compact">
+                    <label class="contraindication-item evaluate">
+                      <input type="checkbox" name="contraindications_evaluate" value="neoplasia"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Neoplasia</span>
+                    </label>
+                    <label class="contraindication-item evaluate">
+                      <input type="checkbox" name="contraindications_evaluate" value="diabetes"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Diabetes</span>
+                    </label>
+                    <label class="contraindication-item evaluate">
+                      <input type="checkbox" name="contraindications_evaluate" value="uso_drogas"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Drogas IV</span>
+                    </label>
+                    <label class="contraindication-item evaluate">
+                      <input type="checkbox" name="contraindications_evaluate" value="comportamento_risco"
+                        onchange="updateEligibility()">
+                      <span class="ci-text">Risco</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ===== ELEGIBILIDADE PARA DOAÇÃO ===== -->
+              <div class="form-section eligibility-section">
+                <h3 class="form-section-title">
+                  <span class="section-icon">👁️</span>
+                  Elegibilidade
+                </h3>
+
+                <div id="eligibility-card" class="eligibility-card eligibility-pending">
+                  <div class="eligibility-header">
+                    <div class="eligibility-status-icon" id="eligibility-icon">
+                      <svg viewBox="0 0 100 100" class="cornea-icon">
+                        <ellipse cx="50" cy="50" rx="45" ry="35" fill="none" stroke="currentColor" stroke-width="3" />
+                        <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" stroke-width="3" />
+                        <circle cx="50" cy="50" r="10" fill="currentColor" />
+                        <circle cx="45" cy="45" r="3" fill="white" opacity="0.8" />
+                      </svg>
+                    </div>
+                    <div class="eligibility-info">
+                      <h4 id="eligibility-title">Aguardando</h4>
+                      <p id="eligibility-description">Preencha os campos</p>
+                    </div>
+                  </div>
+
+                  <!-- Córneas -->
+                  <div class="corneas-status">
+                    <div class="cornea-item" id="cornea-left">
+                      <div class="cornea-visual">
+                        <svg viewBox="0 0 60 40" class="cornea-svg">
+                          <ellipse cx="30" cy="20" rx="25" ry="17" fill="none" stroke="currentColor" stroke-width="2" />
+                          <circle cx="30" cy="20" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+                          <circle cx="30" cy="20" r="5" fill="currentColor" />
+                        </svg>
+                      </div>
+                      <span class="cornea-label">Esquerda</span>
+                      <span class="cornea-status" id="cornea-left-status">—</span>
+                    </div>
+                    <div class="cornea-divider"></div>
+                    <div class="cornea-item" id="cornea-right">
+                      <div class="cornea-visual">
+                        <svg viewBox="0 0 60 40" class="cornea-svg">
+                          <ellipse cx="30" cy="20" rx="25" ry="17" fill="none" stroke="currentColor" stroke-width="2" />
+                          <circle cx="30" cy="20" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+                          <circle cx="30" cy="20" r="5" fill="currentColor" />
+                        </svg>
+                      </div>
+                      <span class="cornea-label">Direita</span>
+                      <span class="cornea-status" id="cornea-right-status">—</span>
+                    </div>
+                  </div>
+
+                  <div id="eligibility-reasons" class="eligibility-reasons" hidden>
+                    <ul id="eligibility-reasons-list"></ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ===== AÇÕES DO FORMULÁRIO (STICKY) ===== -->
+            <div class="form-actions-sticky">
+              <div class="form-summary" id="form-summary">
+                <div class="summary-item">
+                  <span class="summary-label">ELEGIBILIDADE:</span>
+                  <span class="summary-value" id="summary-eligibility">Pendente</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">TEMPO RESTANTE:</span>
+                  <span class="summary-value" id="summary-time">--:--:--</span>
+                </div>
+              </div>
+              <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" onclick="navigateTo('notifications')">Cancelar</button>
+                <button type="submit" class="btn btn-primary btn-large">
+                  <span class="btn-icon">📋</span>
+                  Registrar Notificação
+                </button>
+              </div>
+            </div>
+
+            <div id="notification-error" class="error-message" hidden></div>
+            <div id="notification-success" class="success-message" hidden></div>
+          </form>
+        </section>
+
+        <!-- Institutions -->
+        <section id="content-institutions" class="content-section">
+          <header class="content-header">
+            <h2>Instituições</h2>
+            <button class="btn btn-primary" onclick="showModal('institution-modal')">
+              + Nova Instituição
+            </button>
+          </header>
+
+          <table class="data-table institutions-table">
+            <thead>
+              <tr>
+                <th width="40"></th>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Tipo</th>
+                <th>CNES</th>
+                <th>Cidade</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="institutions-list-body">
+              <tr>
+                <td colspan="8" class="empty-state">Carregando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+
+
+        <!-- Relayer -->
+        <section id="content-relayer" class="content-section">
+          <header class="content-header">
+            <h2>Gerenciamento do Relayer</h2>
+          </header>
+
+          <div class="relayer-status">
+            <div class="relayer-card">
+              <h3>⛓️ Status do Relayer</h3>
+              <div class="relayer-info">
+                <div class="info-row">
+                  <span class="info-label">Status:</span>
+                  <span class="info-value" id="relayer-status">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Endereço:</span>
+                  <span class="info-value" id="relayer-address">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Saldo:</span>
+                  <span class="info-value" id="relayer-balance">-</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Rede:</span>
+                  <span class="info-value">Sepolia Testnet</span>
+                </div>
+              </div>
+              <button class="btn btn-secondary" onclick="refreshRelayerStatus()">
+                🔄 Atualizar Status
+              </button>
+            </div>
+
+            <div class="relayer-card">
+              <h3>Histórico de Transações</h3>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Hash</th>
+                    <th>Tipo</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody id="relayer-tx-body">
+                  <tr>
+                    <td colspan="4" class="empty-state">Carregando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal: Novo Operador (dentro de instituição) -->
+    <div id="user-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Novo Operador</h3>
+          <button class="modal-close" onclick="hideModal('user-modal')">&times;</button>
+        </div>
+        <form id="user-form">
+          <input type="hidden" id="user-institution-id" name="institutionId">
+          <div class="form-group">
+            <label>Instituição</label>
+            <input type="text" id="user-institution-name" readonly class="input-readonly">
+          </div>
+          <div class="form-group">
+            <label for="user-name">Nome *</label>
+            <input type="text" id="user-name" name="name" required>
+          </div>
+          <div class="form-group">
+            <label for="user-email">Email *</label>
+            <input type="email" id="user-email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="user-password">Senha *</label>
+            <input type="password" id="user-password" name="password" minlength="8" required>
+          </div>
+          <div class="form-group">
+            <label for="user-role">Função *</label>
+            <select id="user-role" name="role" required>
+              <option value="">Selecione</option>
+              <option value="hospital">Hospital</option>
+              <option value="iml">IML - Instituto Médico Legal</option>
+              <option value="svo">SVO - Serviço de Verificação de Óbito</option>
+              <option value="banco_olhos">Banco de Olhos</option>
+              <option value="ses">SES - Secretaria Estadual de Saúde</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="hideModal('user-modal')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar Operador</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: New Institution -->
+    <div id="institution-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Nova Instituição</h3>
+          <button class="modal-close" onclick="hideModal('institution-modal')">&times;</button>
+        </div>
+        <form id="institution-form">
+          <div class="form-group">
+            <label for="inst-name">Nome *</label>
+            <input type="text" id="inst-name" name="name" required>
+          </div>
+          <div class="form-group">
+            <label for="inst-type">Tipo *</label>
+            <select id="inst-type" name="type" required>
+              <option value="">Selecione</option>
+              <option value="hospital">Hospital</option>
+              <option value="iml">IML - Instituto Médico Legal</option>
+              <option value="svo">SVO - Serviço de Verificação de Óbito</option>
+              <option value="banco_olhos">Banco de Olhos</option>
+              <option value="ses">SES - Secretaria Estadual de Saúde</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="inst-cnes">CNES</label>
+            <input type="text" id="inst-cnes" name="cnes">
+          </div>
+          <div class="form-group">
+            <label for="inst-address">Endereço</label>
+            <input type="text" id="inst-address" name="address" placeholder="Rua, número, bairro...">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inst-state">Estado *</label>
+              <select id="inst-state" name="state" required onchange="loadCitiesByState(this.value, 'inst-city')">
+                <option value="">Selecione</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="inst-city">Cidade *</label>
+              <select id="inst-city" name="city" required>
+                <option value="">Selecione o estado primeiro</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="inst-phone">Telefone</label>
+            <input type="tel" id="inst-phone" name="phone" placeholder="(62) 99999-9999" oninput="maskPhone(this)">
+          </div>
+          <div class="form-group">
+            <label for="inst-email">Email</label>
+            <input type="email" id="inst-email" name="email">
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="hideModal('institution-modal')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: View Notification Details -->
+    <div id="notification-detail-modal" class="modal">
+      <div class="modal-content modal-large">
+        <div class="modal-header">
+          <h3>📋 Detalhes da Notificação <span id="detail-notification-id"></span></h3>
+          <button class="modal-close" onclick="hideModal('notification-detail-modal')">&times;</button>
+        </div>
+        <div class="notification-detail-content">
+          <!-- Dados do Paciente -->
+          <div class="detail-section">
+            <h4>👤 Paciente</h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Nome:</span>
+                <span class="detail-value" id="detail-patient-name"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Idade:</span>
+                <span class="detail-value" id="detail-patient-age"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Sexo:</span>
+                <span class="detail-value" id="detail-patient-gender"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Hash CPF:</span>
+                <span class="detail-value" id="detail-patient-hash"
+                  style="font-size: 0.8em; color: var(--text-muted);"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dados do Óbito -->
+          <div class="detail-section">
+            <h4>📋 Óbito</h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Data/Hora:</span>
+                <span class="detail-value" id="detail-death-datetime"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Instituição:</span>
+                <span class="detail-value" id="detail-institution"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Causa:</span>
+                <span class="detail-value" id="detail-death-cause"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Local:</span>
+                <span class="detail-value" id="detail-death-location"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">PCR:</span>
+                <span class="detail-value" id="detail-pcr"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Consentimento Familiar -->
+          <div class="detail-section">
+            <h4>👨‍👩‍👧 Consentimento Familiar</h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value" id="detail-consent-status"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Responsável:</span>
+                <span class="detail-value" id="detail-family-contact"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Telefone:</span>
+                <span class="detail-value" id="detail-family-phone"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Parentesco:</span>
+                <span class="detail-value" id="detail-family-relationship"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Córneas -->
+          <div class="detail-section">
+            <h4>👁️ Elegibilidade das Córneas</h4>
+            <div class="detail-grid cornea-grid">
+              <div class="detail-item cornea-item">
+                <span class="detail-label">Córnea Esquerda:</span>
+                <span class="detail-value" id="detail-cornea-left"></span>
+              </div>
+              <div class="detail-item cornea-item">
+                <span class="detail-label">Córnea Direita:</span>
+                <span class="detail-value" id="detail-cornea-right"></span>
+              </div>
+            </div>
+            <div class="detail-item" id="detail-contraindications-wrapper" style="margin-top: 1rem;">
+              <span class="detail-label">Contraindicações:</span>
+              <span class="detail-value" id="detail-contraindications"></span>
+            </div>
+          </div>
+
+          <!-- Blockchain -->
+          <div class="detail-section">
+            <h4>⛓️ Blockchain</h4>
+            <div class="detail-grid">
+              <div class="detail-item full-width">
+                <span class="detail-label">Transaction Hash:</span>
+                <span class="detail-value" id="detail-blockchain-tx"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Observações -->
+          <div class="detail-section" id="detail-notes-section">
+            <h4>📝 Observações</h4>
+            <p class="detail-notes" id="detail-notes"></p>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary"
+            onclick="hideModal('notification-detail-modal')">Fechar</button>
+          <button type="button" class="btn btn-primary" id="detail-blockchain-btn" onclick="sendToBlockchain()"
+            style="display: none;">
+            ⛓️ Enviar para Blockchain
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    // Só registrar PWA se não estiver em localhost
+    const isLocalhost = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
+
+    if (!isLocalhost && 'serviceWorker' in navigator) {
+      // Registrar Service Worker apenas em produção
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          console.log('[PWA] Service Worker registrado:', registration.scope);
+        } catch (error) {
+          console.error('[PWA] Erro ao registrar Service Worker:', error);
+        }
+      });
+
+      // PWA Install Prompt
+      let deferredPrompt;
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+
+        // Mostrar botão de instalação
+        const btn = document.getElementById('pwa-install-btn');
+        if (btn) btn.hidden = false;
+      });
+
+      window.installPWA = function () {
+        const btn = document.getElementById('pwa-install-btn');
+        if (btn) btn.hidden = true;
+
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choice) => {
+            if (choice.outcome === 'accepted') {
+              console.log('[PWA] Usuário aceitou instalar');
+            }
+            deferredPrompt = null;
+          });
+        }
+      };
+
+      // Detectar se já está instalado
+      window.addEventListener('appinstalled', () => {
+        console.log('[PWA] App instalado com sucesso!');
+        deferredPrompt = null;
+      });
+    } else if (isLocalhost) {
+      console.log('[PWA] Modo desenvolvimento - PWA desabilitado em localhost');
+    }
+  </script>
+</body>
+
+</html>

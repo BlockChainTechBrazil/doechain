@@ -2,24 +2,30 @@
   "name": "doechain",
   "version": "1.0.0",
   "description": "DoeChain - Sistema de Notificação de Óbitos com Potencial de Doação de Córneas",
-  "main": "standalone.js",
-  "bin": "standalone.js",
+  "main": "src/services/server.js",
   "scripts": {
-    "start": "node standalone.js",
+    "start": "node src/services/server.js",
+    "dev": "node src/services/server.js",
+    "standalone": "node standalone.js",
+    "init-db": "node src/services/scripts/init-db.js",
+    "create-admin": "node src/services/scripts/create-admin.js",
+    "migrate": "node src/services/scripts/migrate-mv-fields.js",
+    "fill-data": "node src/services/scripts/fill-missing-data.js",
     "build": "npm run build:prepare && npm run build:pkg",
     "build:prepare": "node build/prepare.js",
     "build:pkg": "pkg . --targets node18-win-x64 --output dist/DoeChain.exe --compress GZip",
     "build:all": "pkg . --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --output dist/DoeChain --compress GZip"
   },
+  "bin": "standalone.js",
   "pkg": {
     "assets": [
-      "frontend/**/*",
-      "backend/abi/**/*",
-      "backend/data/.gitkeep",
+      "src/pages/**/*",
+      "src/services/abi/**/*",
+      "data/.gitkeep",
       "node_modules/sql.js/dist/sql-wasm.wasm"
     ],
     "scripts": [
-      "backend/**/*.js"
+      "src/services/**/*.js"
     ],
     "outputPath": "dist"
   },
@@ -28,7 +34,6 @@
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0",
-    "dotenv": "^16.3.1",
     "ethers": "^6.11.1",
     "sql.js": "^1.10.3",
     "bcryptjs": "^2.4.3",
@@ -41,5 +46,7 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "author": "BlockchainTech Brazil",
+  "license": "MIT"
 }

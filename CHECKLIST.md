@@ -10,6 +10,9 @@
 - [x] Services (Auth, Notification, Institution, Relayer)
 - [x] Middleware de autenticação
 - [x] Scripts de inicialização (init-db, create-admin)
+- [x] Integração Mock API MV (Sistema Hospitalar)
+- [x] Polling automático de notificações
+- [x] Submissão automática para blockchain
 
 ### Frontend ✅
 - [x] HTML5 responsivo
@@ -20,6 +23,8 @@
 - [x] Avaliação de elegibilidade para doação
 - [x] Contraindicações absolutas/oculares
 - [x] Consentimento familiar
+- [x] Sistema de lido/não-lido para notificações
+- [x] Gestão de operadores por instituição
 
 ### PWA ✅
 - [x] manifest.webmanifest configurado
@@ -36,7 +41,7 @@
 - [x] Suporte a meta-transactions (ERC-2771)
 
 ### Configurações ✅
-- [x] .env configurado com credenciais
+- [x] Configurações embutidas no código (sem .env)
 - [x] Relayer com chave privada válida
 - [x] Forwarder address configurado
 - [x] Rede Sepolia configurada
@@ -73,17 +78,13 @@
 ## 🚀 Deploy Checklist
 
 ### Smart Contract
-- [ ] Obter ETH de teste na Sepolia
-- [ ] Abrir Remix IDE
-- [ ] Compilar DeathNotificationRegistry.sol
-- [ ] Deploy com parâmetros corretos
-- [ ] Copiar endereço do contrato
-- [ ] Atualizar DEATH_NOTIFICATION_ADDRESS no .env
+- [x] ~~Obter ETH de teste na Sepolia~~ (Contrato já deployado)
+- [x] ~~Deploy com parâmetros corretos~~ (Endereço: 0x690fD2Ee2BAdD99C543b89eEAB9C73C1d8F94E54)
+- [x] Configuração embutida no código
 
 ### Backend (Servidor)
 - [ ] Instalar Node.js >= 18
-- [ ] `cd backend && npm install`
-- [ ] Configurar .env
+- [ ] `npm install`
 - [ ] `npm run init-db`
 - [ ] `npm run create-admin`
 - [ ] `npm start`
@@ -100,7 +101,6 @@
 
 ```bash
 # Iniciar servidor
-cd orgaos-hospitais/backend
 npm start
 
 # Criar admin (se necessário)
@@ -108,6 +108,9 @@ npm run create-admin
 
 # Reinicializar banco
 npm run init-db
+
+# Preencher dados faltantes
+npm run fill-data
 ```
 
 ---
@@ -120,10 +123,14 @@ npm run init-db
 | GET | /api/auth/me | Usuário atual |
 | GET | /api/notifications | Lista notificações |
 | POST | /api/notifications | Criar notificação |
+| PATCH | /api/notifications/:id/read | Marcar como lida |
 | GET | /api/notifications/statistics | Estatísticas |
+| GET | /api/notifications/unread-count | Contador não lidas |
 | GET | /api/institutions | Lista instituições |
 | POST | /api/institutions | Criar instituição |
+| GET | /api/institutions/:id/users | Operadores da instituição |
 | GET | /api/relay/status | Status do relayer |
+| GET | /api/mv/status | Status integração MV |
 
 ---
 
@@ -139,6 +146,10 @@ npm run init-db
 
 5. **Banco local** - dados ficam no SQLite, blockchain é só para hash de auditoria
 
+6. **Configuração embutida** - todas as credenciais estão no código, não usa .env
+
+7. **Mock API MV** - simula integração com sistema hospitalar (100 registros de teste)
+
 ---
 
 ## 🎯 Pronto para Produção?
@@ -147,6 +158,8 @@ npm run init-db
 - [x] Credenciais configuradas
 - [x] PWA instalável
 - [x] Documentação criada
+- [x] Integração MV mockada
+- [x] Blockchain operacional
 - [ ] Deploy do smart contract (quando necessário)
 - [ ] Testes em ambiente real
 
