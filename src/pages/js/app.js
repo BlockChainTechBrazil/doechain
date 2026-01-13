@@ -1184,6 +1184,18 @@ function renderInstitutionsList(data) {
       </td>
     </tr>
   `).join('');
+
+  // Abrir o acordeon da primeira instituição automaticamente, se houver
+  if (data.length > 0) {
+    // Pequeno atraso para garantir que o DOM recebeu o conteúdo
+    setTimeout(() => {
+      try {
+        toggleOperatorsAccordion(data[0].id, data[0].name);
+      } catch (e) {
+        console.warn('Erro ao abrir acordeon automaticamente:', e);
+      }
+    }, 0);
+  }
 }
 
 async function handleInstitutionSubmit(e) {
@@ -1289,7 +1301,6 @@ function renderOperatorsInAccordion(institutionId, users) {
         <tr>
           <th>Nome</th>
           <th>Email</th>
-          <th>Função</th>
           <th>Status</th>
           <th>Último Login</th>
           <th>Ações</th>
@@ -1300,11 +1311,9 @@ function renderOperatorsInAccordion(institutionId, users) {
           <tr>
             <td>${u.name}</td>
             <td>${u.email}</td>
-            <td>${getRoleLabel(u.role)}</td>
             <td><span class="badge badge-${u.active ? 'success' : 'danger'}">${u.active ? 'Ativo' : 'Inativo'}</span></td>
             <td>${u.last_login ? formatDateTime(u.last_login) : 'Nunca'}</td>
             <td>
-              <button class="btn btn-sm" onclick="editUser(${u.id})">Editar</button>
               <button class="btn btn-sm btn-danger" onclick="toggleUserStatus(${u.id}, ${u.active})">${u.active ? 'Desativar' : 'Ativar'}</button>
             </td>
           </tr>
@@ -1326,7 +1335,7 @@ function showAddOperatorModal(institutionId, institutionName) {
   document.getElementById('user-name').value = '';
   document.getElementById('user-email').value = '';
   document.getElementById('user-password').value = '';
-  document.getElementById('user-role').value = '';
+  // campo de função removido do modal; frontend enviará role = 'admin' temporariamente
 
   showModal('user-modal');
 }
@@ -1347,7 +1356,7 @@ async function handleUserSubmit(e) {
     name: form.name.value,
     email: form.email.value,
     password: form.password.value,
-    role: form.role.value,
+    role: 'admin',
     institutionId: parseInt(institutionId)
   };
 

@@ -838,17 +838,7 @@
             <label for="user-password">Senha *</label>
             <input type="password" id="user-password" name="password" minlength="8" required>
           </div>
-          <div class="form-group">
-            <label for="user-role">Função *</label>
-            <select id="user-role" name="role" required>
-              <option value="">Selecione</option>
-              <option value="hospital">Hospital</option>
-              <option value="iml">IML - Instituto Médico Legal</option>
-              <option value="svo">SVO - Serviço de Verificação de Óbito</option>
-              <option value="banco_olhos">Banco de Olhos</option>
-              <option value="ses">SES - Secretaria Estadual de Saúde</option>
-            </select>
-          </div>
+          <!-- Função removida: role será enviada como 'admin' pelo frontend temporariamente -->
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" onclick="hideModal('user-modal')">Cancelar</button>
             <button type="submit" class="btn btn-primary">Salvar Operador</button>
