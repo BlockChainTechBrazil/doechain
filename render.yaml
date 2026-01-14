@@ -1,0 +1,32 @@
+# Render service configuration
+# Replace placeholders via Render dashboard or Environment settings
+
+services:
+  - type: web
+    name: DoeChain Web
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: starter
+    # Start command is handled by Dockerfile CMD (./start.sh)
+    # Persistent disk required for sqlite file
+    disk: 1
+    envVars:
+      - key: PORT
+        value: "3001"
+      - key: JWT_SECRET
+        value: "doechain_jwt_secret_hospital_ses_go_2026"
+      - key: RELAYER_PRIVATE_KEY
+        value: "0x0000000000000000000000000000000000000000000000000000000000000000"
+      - key: RPC_URL
+        value: "https://rpc.example.local"
+      - key: TRUSTED_FORWARDER
+        value: "0x0000000000000000000000000000000000000000"
+      - key: ADMIN_EMAIL
+        value: "admin@doechain.gov.br"
+      - key: ADMIN_PASSWORD
+        value: "admin123456"
+
+# Notes:
+# - Do NOT commit secrets to repository. Set them in Render dashboard under "Environment".
+# - After first deploy, Render will run container. If DB is missing, start.sh will run init-db and create-admin.
+# - If you prefer Postgres, change app DB code and remove the persistent disk requirement.
