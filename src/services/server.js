@@ -76,6 +76,27 @@ async function startServer() {
     await initDatabase();
     console.log('✅ Banco de dados pronto!');
 
+    // Opcional: rota de depuração para listar tabelas do DB
+    // Ative definindo a variável de ambiente EXPOSE_DEBUG_DB=1 (remova em produção)
+    if (process.env.EXPOSE_DEBUG_DB === '1') {
+      try {
+        const { getDatabase } = require('./config/database');
+        const db = getDatabase();
+        app.get('/internal/db-tables', (req, res) => {
+          try {
+            const result = db._db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+            const tables = (result[0] && result[0].values) ? result[0].values.map(r => r[0]) : [];
+            res.json({ tables });
+          } catch (err) {
+            res.status(500).json({ error: String(err) });
+          }
+        });
+        console.log('[DEBUG] /internal/db-tables route enabled');
+      } catch (err) {
+        console.warn('[DEBUG] Could not enable /internal/db-tables route:', err.message || err);
+      }
+    }
+
     // Rotas (carregadas após DB estar pronto)
     const authRoutes = require('./routes/auth');
     const notificationRoutes = require('./routes/notifications');
